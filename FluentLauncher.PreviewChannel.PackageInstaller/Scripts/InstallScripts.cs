@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Principal;
 using System.Xml;
 
 namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
@@ -30,6 +32,34 @@ public class InstallScripts
     public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath,
         string? certificationPath = null, bool launchAfterInstalled = true)
     {
+        #region Check Permission
+
+        bool isElevated;
+        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+        {
+            WindowsPrincipal principal = new(identity);
+            Console.WriteLine($"WindowsPrincipal: {principal}");
+            isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        if (!isElevated)
+        {
+            var processStartInfo = new ProcessStartInfo
+            {
+                FileName = Environment.ProcessPath,
+                Arguments = string.Join(' ', Program.Arguments),
+                UseShellExecute = true,
+                Verb = "runas",
+            };
+
+            var process = Process.Start(processStartInfo);
+            Environment.Exit(0);
+        }
+
+        Console.WriteLine($"WindowsPrincipal: {WindowsBuiltInRole.Administrator}");
+
+        #endregion
+
         #region Parse Package
 
         string? packageName = null;

@@ -1,8 +1,9 @@
 ﻿using FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+
+Arguments = args;
 
 var manualTargetPackageCommand = new Command("manualTargetPackage");
 manualTargetPackageCommand.AddOption(CertificationPath);
@@ -83,4 +84,6 @@ public partial class Program
         IsRequired = true,
         AllowMultipleArgumentsPerToken = true
     };
+
+    public static string[] Arguments { get; set; } = null!;
 }
