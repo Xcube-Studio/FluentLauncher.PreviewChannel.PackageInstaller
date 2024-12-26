@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 
-namespace FluentLauncher.PreviewChannel.PackageInstaller;
+namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 
 public class InstallScripts
 {
@@ -27,7 +27,7 @@ public class InstallScripts
         ibZ+jVh3oqn2yxqQ/zCt5e//A5dUWPzIhA0f5eGaywQ=
         """;
 
-    public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath, 
+    public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath,
         string? certificationPath = null, bool launchAfterInstalled = true)
     {
         #region Parse Package
@@ -40,8 +40,8 @@ public class InstallScripts
             using var streamReader = new StreamReader(stream);
 
             using var xmlReader = XmlReader.Create(streamReader);
-            packageName = xmlReader.ReadToDescendant("Identity") 
-                ? xmlReader.GetAttribute("Name") 
+            packageName = xmlReader.ReadToDescendant("Identity")
+                ? xmlReader.GetAttribute("Name")
                 : null;
         }
 
@@ -74,10 +74,10 @@ public class InstallScripts
         #region Check If Package Installed
 
         bool isPackageInstalled = false;
-        string? packageFamilyName = null; 
+        string? packageFamilyName = null;
 
         using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
-            { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+        { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
         {
             await process.WaitForExitAsync();
             string content = await process.StandardOutput.ReadToEndAsync();
@@ -127,7 +127,7 @@ public class InstallScripts
 
         string forceUpdateOption = isPackageInstalled ? " -ForceUpdateFromAnyVersion" : string.Empty;
         using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\"" + forceUpdateOption)
-            { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+        { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
         {
             await process.WaitForExitAsync();
             if (!string.IsNullOrEmpty(await process.StandardError.ReadToEndAsync()))
@@ -139,7 +139,7 @@ public class InstallScripts
         #region Launch Application
 
         using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
-            { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+        { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
         {
             await process.WaitForExitAsync();
             string content = await process.StandardOutput.ReadToEndAsync();

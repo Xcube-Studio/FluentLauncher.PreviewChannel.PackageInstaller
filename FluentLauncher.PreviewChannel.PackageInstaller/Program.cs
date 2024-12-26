@@ -1,4 +1,4 @@
-﻿using FluentLauncher.PreviewChannel.PackageInstaller;
+﻿using FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 using System.CommandLine;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
@@ -8,6 +8,10 @@ manualTargetPackageCommand.AddOption(CertificationPath);
 manualTargetPackageCommand.AddOption(PackagePath);
 manualTargetPackageCommand.AddOption(DependencyPackagesPath);
 manualTargetPackageCommand.AddOption(LaunchAfterInstalled);
+
+var queryCommand = new Command("query");
+queryCommand.AddOption(GetBuildCountOfVersion);
+queryCommand.SetHandler(async (versionToGetBuildCount) => await QueryScripts.QueryAsync(versionToGetBuildCount), GetBuildCountOfVersion);
 
 manualTargetPackageCommand.SetHandler(async (certificationPath, packagePath, dependencyPackagesPath, launchAfterInstalled) 
     => await InstallScripts.InstallPackage(packagePath, dependencyPackagesPath, certificationPath, launchAfterInstalled),
@@ -40,6 +44,9 @@ rootCommand.SetHandler(async (launchAfterInstalled) =>
     Directory.Delete($"updatePackage-{architecture}", true);
 }, LaunchAfterInstalled);
 
+rootCommand.AddCommand(manualTargetPackageCommand);
+rootCommand.AddCommand(queryCommand);
+
 return await rootCommand.InvokeAsync(args);
 
 public partial class Program
@@ -51,4 +58,6 @@ public partial class Program
     static Option<string[]> DependencyPackagesPath { get; } = new(name: "--dependencyPackagesPath") { IsRequired = true };
 
     static Option<bool> LaunchAfterInstalled { get; } = new(name: "--launchAfterInstalled", getDefaultValue: () => true) { IsRequired = false,  };
+
+    static Option<string> GetBuildCountOfVersion { get; } = new(name: "--getBuildCountOfVersion") { IsRequired = false };
 }
