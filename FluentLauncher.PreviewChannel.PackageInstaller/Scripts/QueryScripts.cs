@@ -8,6 +8,7 @@ namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 //    "build": 1,
 //    "releaseTime": "",
 //    "previousStableVersion": "2.3.2.0",
+//    "currentPreviewVersion": "2.3.2.1",
 //    "hashes": {
 //        "updatePackage-x64.zip": "",
 //        "updatePackage-arm64.zip": ""
