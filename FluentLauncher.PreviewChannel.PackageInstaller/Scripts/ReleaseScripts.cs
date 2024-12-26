@@ -20,17 +20,17 @@ public static partial class ReleaseScripts
 {
     public static async Task GenerateReleaseJson(string commit, string stableVersion, string[] packageFiles)
     {
-        int build = await QueryScripts.GetBuildCountOfVersionAsync(stableVersion);
+        int build = await QueryScripts.GetBuildCountOfVersionAsync(stableVersion) + 1;
         string currentPreviewVersion = VersionRegex().Replace(stableVersion, match =>
         {
             string prefix = match.Groups[1].Value;
-            return prefix + "." + build;
+            return $"{prefix}.{build}";
         });
 
         JsonObject json = new()
         {
             { "commit", commit },
-            { "build", build + 1 },
+            { "build", build },
             { "releaseTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
             { "currentPreviewVersion", currentPreviewVersion },
             { "previousStableVersion", stableVersion }
