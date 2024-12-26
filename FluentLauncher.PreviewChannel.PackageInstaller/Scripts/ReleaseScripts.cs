@@ -37,7 +37,7 @@ public static partial class ReleaseScripts
         {
             { "commit", commit },
             { "build", build },
-            { "releaseTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
+            { "releaseTime", DateTime.Now.ToString() },
             { "currentPreviewVersion", currentPreviewVersion },
             { "previousStableVersion", stableVersion }
         };
