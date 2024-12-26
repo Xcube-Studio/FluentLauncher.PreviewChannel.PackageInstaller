@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -18,6 +19,11 @@ namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 
 public static partial class ReleaseScripts
 {
+    public static JsonSerializerOptions SerializerOptions { get; } = new()
+    {
+        WriteIndented = true
+    };
+
     public static async Task GenerateReleaseJson(string commit, string stableVersion, string[] packageFiles)
     {
         int build = await QueryScripts.GetBuildCountOfVersionAsync(stableVersion) + 1;
@@ -49,7 +55,7 @@ public static partial class ReleaseScripts
         }
 
         json.Add("hashes", hashes);
-        Console.WriteLine(json.ToString());
+        Console.WriteLine(json.ToJsonString(SerializerOptions));
     }
 
     [GeneratedRegex(@"(\d+\.\d+\.\d+)\.(\d+)")]
