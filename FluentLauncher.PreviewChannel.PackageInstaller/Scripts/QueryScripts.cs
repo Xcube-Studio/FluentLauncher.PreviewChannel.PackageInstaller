@@ -27,33 +27,34 @@ public static class QueryScripts
 
     public static async Task QueryAsync(string? versionToGetBuildCount)
     {
+        if (!string.IsNullOrEmpty(versionToGetBuildCount))
+            Console.WriteLine($"BuildCount: {await GetBuildCountOfVersionAsync(versionToGetBuildCount)}");
+    }
+
+    public static async Task<int> GetBuildCountOfVersionAsync(string version)
+    {
         string releasesContent = await _httpClient.GetStringAsync(GithubReleasesApi);
         string pattern = @"(?<=``` json)([\s\S]+?)(?=```)";
 
-        if (!string.IsNullOrEmpty(versionToGetBuildCount))
+        foreach (var node in JsonArray.Parse(releasesContent)!.AsArray())
         {
-            int build = 0;
-
-            foreach (var node in JsonArray.Parse(releasesContent)!.AsArray())
+            if (node!.AsObject().ContainsKey("prerelease") && node["prerelease"]!.GetValue<bool>())
             {
-                if (node!.AsObject().ContainsKey("prerelease") && node["prerelease"]!.GetValue<bool>())
-                {
-                    string body = node["body"]!.GetValue<string>();
-                    Match match = Regex.Match(body, pattern);
+                string body = node["body"]!.GetValue<string>();
+                Match match = Regex.Match(body, pattern);
 
-                    if (!match.Success) 
-                        continue;
+                if (!match.Success)
+                    continue;
 
-                    JsonNode jsonBody = JsonNode.Parse(match.Groups[1].Value)!;
+                JsonNode jsonBody = JsonNode.Parse(match.Groups[1].Value)!;
 
-                    if (jsonBody["previousStableVersion"]!.GetValue<string>() != versionToGetBuildCount)
-                        continue;
+                if (jsonBody["previousStableVersion"]!.GetValue<string>() != version)
+                    continue;
 
-                    build = jsonBody["build"]!.GetValue<int>();
-                }
+                return jsonBody["build"]!.GetValue<int>();
             }
-
-            Console.WriteLine($"BuildCount: {build}");
         }
+
+        return 0;
     }
 }

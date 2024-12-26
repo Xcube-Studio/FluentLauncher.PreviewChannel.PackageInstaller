@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security.Cryptography;
+using System.Text.Json.Nodes;
 
 namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 
@@ -19,8 +16,30 @@ namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
 
 public static class ReleaseScripts
 {
-    public static async Task GenerateReleaseJson(string commit, string[] packageFiles)
+    public static async Task GenerateReleaseJson(string commit, string stableVersion, string[] packageFiles)
     {
+        int build = await QueryScripts.GetBuildCountOfVersionAsync(stableVersion);
+        JsonObject json = new()
+        {
+            { "commit", commit },
+            { "build", build + 1 },
+            { "releaseTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
+            { "previousStableVersion", stableVersion }
+        };
 
+        JsonObject hashes = [];
+
+        foreach (var packageFile in packageFiles)
+        {
+            using var md5 = MD5.Create();
+            using var stream = File.OpenRead(packageFile);
+            byte[] hashBytes = md5.ComputeHash(stream);
+
+            string hash = Convert.ToHexStringLower(hashBytes);
+            hashes.Add(Path.GetFileName(packageFile), hash);
+        }
+
+        json.Add("hashes", hashes);
+        Console.WriteLine(json.ToString());
     }
 }
