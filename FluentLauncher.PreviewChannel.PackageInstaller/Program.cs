@@ -64,6 +64,7 @@ rootCommand.SetHandler(async (launchAfterInstalled) =>
 rootCommand.AddCommand(manualTargetPackageCommand);
 rootCommand.AddCommand(queryCommand);
 rootCommand.AddCommand(generateReleaseJsonCommand);
+rootCommand.AddCommand(generateReleaseMarkdownCommand);
 
 return await rootCommand.InvokeAsync(args);
 
