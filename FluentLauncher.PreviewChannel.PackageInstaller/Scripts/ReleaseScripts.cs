@@ -24,7 +24,7 @@ public static partial class ReleaseScripts
         WriteIndented = true
     };
 
-    public static async Task GenerateReleaseJson(string commit, string stableVersion, string[] packageFiles)
+    public static async Task<string> GenerateReleaseJson(string commit, string stableVersion, string[] packageFiles)
     {
         int build = await QueryScripts.GetBuildCountOfVersionAsync(stableVersion) + 1;
         string currentPreviewVersion = VersionRegex().Replace(stableVersion, match =>
@@ -55,7 +55,18 @@ public static partial class ReleaseScripts
         }
 
         json.Add("hashes", hashes);
-        Console.WriteLine(json.ToJsonString(SerializerOptions));
+        string result = json.ToJsonString(SerializerOptions);
+        
+        Console.WriteLine(result);
+        return result;
+    }
+
+    public static async Task GenerateReleaseMarkdown(string path, string commit, string stableVersion, string[] packageFiles)
+    {
+        string json = await GenerateReleaseJson(stableVersion, stableVersion, packageFiles);
+        string markdown = $"``` json\n{json}\n```";
+
+        await File.WriteAllTextAsync(path, markdown);
     }
 
     [GeneratedRegex(@"(\d+\.\d+\.\d+)\.(\d+)")]

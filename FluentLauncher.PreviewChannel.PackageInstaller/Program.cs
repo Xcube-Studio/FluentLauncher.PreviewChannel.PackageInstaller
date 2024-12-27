@@ -22,6 +22,14 @@ generateReleaseJsonCommand.AddOption(Commit);
 generateReleaseJsonCommand.SetHandler(async (updatePackageFiles, stableVersion, commit)
     => await ReleaseScripts.GenerateReleaseJson(commit, stableVersion, updatePackageFiles), UpdatePackageFiles, StableVersion, Commit);
 
+var generateReleaseMarkdownCommand = new Command("generateReleaseMarkdown");
+generateReleaseMarkdownCommand.AddOption(UpdatePackageFiles);
+generateReleaseMarkdownCommand.AddOption(StableVersion);
+generateReleaseMarkdownCommand.AddOption(Commit);
+generateReleaseMarkdownCommand.AddOption(MarkdownPath);
+generateReleaseMarkdownCommand.SetHandler(async (updatePackageFiles, stableVersion, commit, markdownPath)
+    => await ReleaseScripts.GenerateReleaseMarkdown(markdownPath, commit, stableVersion, updatePackageFiles), UpdatePackageFiles, StableVersion, Commit, MarkdownPath);
+
 manualTargetPackageCommand.SetHandler(async (certificationPath, packagePath, dependencyPackagesPath, launchAfterInstalled) 
     => await InstallScripts.InstallPackage(packagePath, dependencyPackagesPath, certificationPath, launchAfterInstalled),
     CertificationPath, PackagePath, DependencyPackagesPath, LaunchAfterInstalled);
@@ -78,6 +86,8 @@ public partial class Program
     static Option<string> StableVersion { get; } = new(name: "--stableVersion") { IsRequired = true, };
 
     static Option<string> Commit { get; } = new(name: "--commit") { IsRequired = true, };
+
+    static Option<string> MarkdownPath { get; } = new(name: "--markdownPath") { IsRequired = true, };
 
     static Option<string[]> UpdatePackageFiles { get; } = new(name: "--updatePackageFiles") 
     { 
