@@ -63,7 +63,7 @@ public static partial class ReleaseScripts
 
     public static async Task GenerateReleaseMarkdown(string path, string commit, string stableVersion, string[] packageFiles)
     {
-        string json = await GenerateReleaseJson(stableVersion, stableVersion, packageFiles);
+        string json = await GenerateReleaseJson(commit, stableVersion, packageFiles);
         string markdown = $"``` json\n{json}\n```";
 
         await File.WriteAllTextAsync(path, markdown);
