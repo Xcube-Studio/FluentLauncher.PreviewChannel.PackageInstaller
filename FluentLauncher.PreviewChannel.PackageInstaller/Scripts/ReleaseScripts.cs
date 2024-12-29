@@ -66,6 +66,10 @@ public static partial class ReleaseScripts
         string json = await GenerateReleaseJson(commit, stableVersion, packageFiles);
         string markdown = $"``` json\n{json}\n```";
 
+        var directory = new FileInfo(path).Directory!;
+        if (!directory.Exists)
+            directory.Create();
+
         await File.WriteAllTextAsync(path, markdown);
     }
 

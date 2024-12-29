@@ -49,11 +49,14 @@ public class InstallScripts
                 FileName = Environment.ProcessPath,
                 Arguments = string.Join(' ', Program.Arguments),
                 UseShellExecute = true,
-                Verb = "runas",
+                Verb = "runas"
             };
 
-            var process = Process.Start(processStartInfo);
-            Environment.Exit(0);
+            using var process = Process.Start(processStartInfo)!;
+            await process.WaitForExitAsync();
+
+            Console.WriteLine(process.StandardOutput.ReadToEnd());
+            Environment.Exit(process.ExitCode);
         }
 
         Console.WriteLine($"WindowsPrincipal: {WindowsBuiltInRole.Administrator}");
