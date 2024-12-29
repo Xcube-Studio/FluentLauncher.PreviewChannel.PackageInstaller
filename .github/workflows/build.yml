@@ -29,7 +29,7 @@ jobs:
           RuntimeIdentifier: win-${{ matrix.architecture }}
           PublishDir: publish\win-${{ matrix.architecture }}
         run: |
-          msbuild $env:SolutionName /t:Restore;Rebuild;Publish /p:Configuration=Release /p:Platform="Any CPU" /p:PublishDir=$env:PublishDir /p:PublishProtocol=FileSystem /p:TargetFramework=net9.0-windows /p:RuntimeIdentifier=$env:RuntimeIdentifier /p:SelfContained=true /p:PublishSingleFile=true /p:PublishReadyToRun=false /p:PublishAot=true 
+          msbuild $env:SolutionName /t:Restore;Build;Publish /p:Configuration=Release /p:Platform="Any CPU" /p:PublishDir=$env:PublishDir /p:PublishProtocol=FileSystem /p:TargetFramework=net9.0-windows /p:RuntimeIdentifier=$env:RuntimeIdentifier /p:SelfContained=true /p:PublishSingleFile=true /p:PublishReadyToRun=false /p:PublishAot=true 
 
       - name: upload to artifacts
         uses: actions/upload-artifact@v4
