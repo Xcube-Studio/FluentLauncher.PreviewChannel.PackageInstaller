@@ -46,8 +46,8 @@
 ``` json
 {
   "commit": "d088404",
-  "build": 4, // 预览构建次数递增一
-  "releaseTime": "12/28/2024 04:50:55", // 取当前运行事件
+  "build": 4,
+  "releaseTime": "12/28/2024 04:50:55",
   "currentPreviewVersion": "2.3.2.4",
   "previousStableVersion": "2.3.2.0",
   "hashes": {
@@ -72,8 +72,8 @@
 ``` json
 {
   "commit": "d088404",
-  "build": 4, // 预览构建次数递增一
-  "releaseTime": "12/28/2024 04:50:55", // 取当前运行事件
+  "build": 4,
+  "releaseTime": "12/28/2024 04:50:55",
   "currentPreviewVersion": "2.3.2.4",
   "previousStableVersion": "2.3.2.0",
   "hashes": {
