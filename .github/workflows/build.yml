@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: build
+    runs-on: windows-latest
+    strategy:
+        matrix:
+          architecture: [x64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+            
+      - name: Publish Aot
+        env:
+          SolutionName: FluentLauncher.PreviewChannel.PackageInstaller
+          RuntimeIdentifier: win-${{ matrix.architecture }}
+          PublishDir: publish\win-${{ matrix.architecture }}
+        run: |
+          msbuild $env:SolutionName /t:Restore;Rebuild;Publish /p:Configuration=Release /p:Platform="Any CPU" /p:PublishDir=$env:PublishDir /p:PublishProtocol=FileSystem /p:TargetFramework=net9.0-windows /p:RuntimeIdentifier=$env:RuntimeIdentifier /p:SelfContained=true /p:PublishSingleFile=true /p:PublishReadyToRun=false /p:PublishAot=true 
+
+      - name: upload to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-${{ matrix.architecture }}
+          path: "FluentLauncher.PreviewChannel.PackageInstaller\\publish\\win-${{ matrix.architecture }}\\FluentLauncher.PreviewChannel.PackageInstaller.exe"

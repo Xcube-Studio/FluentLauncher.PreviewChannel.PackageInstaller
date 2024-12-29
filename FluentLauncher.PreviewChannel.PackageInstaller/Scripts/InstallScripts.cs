@@ -32,37 +32,6 @@ public class InstallScripts
     public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath,
         string? certificationPath = null, bool launchAfterInstalled = true)
     {
-        #region Check Permission
-
-        bool isElevated;
-        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-        {
-            WindowsPrincipal principal = new(identity);
-            Console.WriteLine($"WindowsPrincipal: {principal}");
-            isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
-        if (!isElevated)
-        {
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = Environment.ProcessPath,
-                Arguments = string.Join(' ', Program.Arguments),
-                UseShellExecute = true,
-                Verb = "runas"
-            };
-
-            using var process = Process.Start(processStartInfo)!;
-            await process.WaitForExitAsync();
-
-            Console.WriteLine(process.StandardOutput.ReadToEnd());
-            Environment.Exit(process.ExitCode);
-        }
-
-        Console.WriteLine($"WindowsPrincipal: {WindowsBuiltInRole.Administrator}");
-
-        #endregion
-
         #region Parse Package
 
         string? packageName = null;
