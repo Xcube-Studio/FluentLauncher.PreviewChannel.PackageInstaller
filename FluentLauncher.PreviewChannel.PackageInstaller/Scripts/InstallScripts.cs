@@ -1,8 +1,6 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Principal;
 using System.Xml;
 
 namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
@@ -128,7 +126,7 @@ public class InstallScripts
         #region Install/Update Package
 
         string forceUpdateOption = isPackageInstalled ? " -ForceUpdateFromAnyVersion" : string.Empty;
-        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\"" + forceUpdateOption)
+        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\" -ForceTargetApplicationShutdown" + forceUpdateOption)
         { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
         {
             await process.WaitForExitAsync();
