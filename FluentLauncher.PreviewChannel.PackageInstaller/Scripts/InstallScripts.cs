@@ -95,7 +95,7 @@ public class InstallScripts
 
         foreach (string path in dependencyPackagesPath)
         {
-            using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{path}\"")
+            using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{path}\" -ForceUpdateFromAnyVersion -ForceApplicationShutdown")
             { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
             {
                 await process.WaitForExitAsync();
@@ -126,7 +126,7 @@ public class InstallScripts
         #region Install/Update Package
 
         string forceUpdateOption = isPackageInstalled ? " -ForceUpdateFromAnyVersion" : string.Empty;
-        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\" -ForceTargetApplicationShutdown" + forceUpdateOption)
+        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\" -ForceApplicationShutdown" + forceUpdateOption)
         { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
         {
             await process.WaitForExitAsync();
