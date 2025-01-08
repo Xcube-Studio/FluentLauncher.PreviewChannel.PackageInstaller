@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Nodes;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace FluentLauncher.PreviewChannel.PackageInstaller.Scripts;
@@ -36,24 +37,24 @@ public static class QueryScripts
     {
         string releasesContent = await _httpClient.GetStringAsync(GithubReleasesApi);
         string pattern = @"(?<=``` json)([\s\S]+?)(?=```)";
+        var releases = JsonSerializer.Deserialize(releasesContent, SerializerContext.Default.ReleaseModelArray)!
+            .Where(releaseModel => releaseModel.TagName.Contains("pre-release") && releaseModel.IsPreRelease)
+            .OrderByDescending(releaseModel => DateTime.Parse(releaseModel.PublishedAt))
+            .ToArray();
 
-        foreach (var node in JsonArray.Parse(releasesContent)!.AsArray())
+        foreach (var releaseModel in releases)
         {
-            if (node!.AsObject().ContainsKey("prerelease") && node["prerelease"]!.GetValue<bool>())
-            {
-                string body = node["body"]!.GetValue<string>();
-                Match match = Regex.Match(body, pattern);
+            Match match = Regex.Match(releaseModel.Body, pattern);
 
-                if (!match.Success)
-                    continue;
+            if (!match.Success)
+                continue;
 
-                JsonNode jsonBody = JsonNode.Parse(match.Groups[1].Value)!;
+            JsonNode jsonBody = JsonNode.Parse(match.Groups[1].Value)!;
 
-                if (jsonBody["previousStableVersion"]!.GetValue<string>() != version)
-                    continue;
+            if (jsonBody["previousStableVersion"]!.GetValue<string>() != version)
+                continue;
 
-                return jsonBody["build"]!.GetValue<int>();
-            }
+            return jsonBody["build"]!.GetValue<int>();
         }
 
         return 0;
