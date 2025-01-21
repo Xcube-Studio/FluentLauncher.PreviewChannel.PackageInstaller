@@ -10,6 +10,10 @@ manualTargetPackageCommand.AddOption(CertificationPath);
 manualTargetPackageCommand.AddOption(PackagePath);
 manualTargetPackageCommand.AddOption(DependencyPackagesPath);
 manualTargetPackageCommand.AddOption(LaunchAfterInstalled);
+manualTargetPackageCommand.AddOption(LogFilePath);
+manualTargetPackageCommand.SetHandler(async (certificationPath, packagePath, dependencyPackagesPath, launchAfterInstalled, logFilePath)
+    => await InstallScripts.InstallPackage(packagePath, dependencyPackagesPath, certificationPath, launchAfterInstalled, logFilePath),
+    CertificationPath, PackagePath, DependencyPackagesPath, LaunchAfterInstalled, LogFilePath);
 
 var queryCommand = new Command("query");
 queryCommand.AddOption(GetBuildCountOfVersion);
@@ -30,13 +34,10 @@ generateReleaseMarkdownCommand.AddOption(MarkdownPath);
 generateReleaseMarkdownCommand.SetHandler(async (updatePackageFiles, stableVersion, commit, markdownPath)
     => await ReleaseScripts.GenerateReleaseMarkdown(markdownPath, commit, stableVersion, updatePackageFiles), UpdatePackageFiles, StableVersion, Commit, MarkdownPath);
 
-manualTargetPackageCommand.SetHandler(async (certificationPath, packagePath, dependencyPackagesPath, launchAfterInstalled) 
-    => await InstallScripts.InstallPackage(packagePath, dependencyPackagesPath, certificationPath, launchAfterInstalled),
-    CertificationPath, PackagePath, DependencyPackagesPath, LaunchAfterInstalled);
-
 var rootCommand = new RootCommand();
 rootCommand.AddOption(LaunchAfterInstalled);
-rootCommand.SetHandler(async (launchAfterInstalled) =>
+rootCommand.AddOption(LogFilePath);
+rootCommand.SetHandler(async (launchAfterInstalled, logFilePath) =>
 {
     string architecture = RuntimeInformation.ProcessArchitecture switch
     {
@@ -55,11 +56,12 @@ rootCommand.SetHandler(async (launchAfterInstalled) =>
     await InstallScripts.InstallPackage(
         $"updatePackage-{architecture}\\msix-{architecture}.msix", 
         Directory.GetFiles($"updatePackage-{architecture}\\dependencies"),
-        launchAfterInstalled: launchAfterInstalled);
+        launchAfterInstalled: launchAfterInstalled,
+        logFilePath: logFilePath);
 
     // Clean up
     Directory.Delete($"updatePackage-{architecture}", true);
-}, LaunchAfterInstalled);
+}, LaunchAfterInstalled, LogFilePath);
 
 rootCommand.AddCommand(manualTargetPackageCommand);
 rootCommand.AddCommand(queryCommand);
@@ -81,6 +83,8 @@ public partial class Program
     };
 
     static Option<bool> LaunchAfterInstalled { get; } = new(name: "--launchAfterInstalled", getDefaultValue: () => true) { IsRequired = false,  };
+
+    static Option<string?> LogFilePath { get; } = new(name: "--logFilePath") { IsRequired = false };
 
     static Option<string> GetBuildCountOfVersion { get; } = new(name: "--getBuildCountOfVersion") { IsRequired = false };
 

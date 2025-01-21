@@ -28,131 +28,189 @@ public class InstallScripts
         """;
 
     public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath,
-        string? certificationPath = null, bool launchAfterInstalled = true)
+        string? certificationPath = null, bool launchAfterInstalled = true, string? logFilePath = default)
     {
-        #region Parse Package
+        StreamWriter? streamWriter = null;
 
-        string? packageName = null;
-
-        using (var zipArchive = ZipFile.Open(packagePath, ZipArchiveMode.Read))
+        if (!string.IsNullOrEmpty(logFilePath))
         {
-            using var stream = zipArchive.Entries.First(entry => entry.FullName.EndsWith("AppxManifest.xml")).Open();
-            using var streamReader = new StreamReader(stream);
+            try
+            {
+                FileInfo logFile = new(logFilePath);
+                streamWriter = logFile.CreateText();
 
-            using var xmlReader = XmlReader.Create(streamReader);
-            packageName = xmlReader.ReadToDescendant("Identity")
-                ? xmlReader.GetAttribute("Name")
-                : null;
+                Console.SetOut(streamWriter);
+                Console.SetError(streamWriter);
+            }
+            catch { }
         }
 
-        Console.WriteLine(packageName);
-
-        #endregion
-
-        #region Check If Commands Exists
-
-        using (var process = Process.Start(new ProcessStartInfo("powershell", "Get-Command Add-AppxPackage"))
-            ?? throw new InvalidOperationException("couldn't start powershell process"))
+        try
         {
-            await process.WaitForExitAsync();
+            #region Parse Package
 
-            if (process.ExitCode != 0)
-                throw new NotSupportedException("Add-AppxPackage Command does not exist");
-        };
+            string? packageName = null;
 
-        using (var process = Process.Start(new ProcessStartInfo("powershell", "Get-Command Get-AppxPackage"))
-            ?? throw new InvalidOperationException("couldn't start powershell process"))
-        {
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode != 0)
-                throw new NotSupportedException("Get-AppxPackage Command does not exist");
-        };
-
-        #endregion
-
-        #region Check If Package Installed
-
-        bool isPackageInstalled = false;
-        string? packageFamilyName = null;
-
-        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
-        { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
-        {
-            await process.WaitForExitAsync();
-            string content = await process.StandardOutput.ReadToEndAsync();
-
-            if (!string.IsNullOrEmpty(content))
+            using (var zipArchive = ZipFile.Open(packagePath, ZipArchiveMode.Read))
             {
-                packageFamilyName = content.Split('\n').FirstOrDefault(line => line.Contains("PackageFamilyName"))?.Split(":")[1]?.Trim();
-                isPackageInstalled = true;
+                using var stream = zipArchive.Entries.First(entry => entry.FullName.EndsWith("AppxManifest.xml")).Open();
+                using var streamReader = new StreamReader(stream);
+
+                using var xmlReader = XmlReader.Create(streamReader);
+                packageName = xmlReader.ReadToDescendant("Identity")
+                    ? xmlReader.GetAttribute("Name")
+                    : null;
             }
-        };
 
-        #endregion
+            Console.WriteLine($"Parsed Package Name: {packageName}");
 
-        #region Install Dependency Packages
+            #endregion
 
-        foreach (string path in dependencyPackagesPath)
-        {
-            using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{path}\" -ForceUpdateFromAnyVersion -ForceApplicationShutdown")
+            #region Check If Commands Exists
+
+            static async Task CheckPowerShellCommand(string commandName)
+            {
+                using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-Command {commandName}"))
+                    ?? throw new InvalidOperationException("couldn't start powershell process"))
+                {
+                    await process.WaitForExitAsync();
+
+                    if (process.ExitCode != 0)
+                    {
+                        Console.WriteLine($"PowerShell Command [{commandName}]: Missing");
+                        throw new NotSupportedException($"{commandName} Command does not exist");
+                    }
+                    else Console.WriteLine($"PowerShell Command [{commandName}]: Checked");
+                };
+            }
+
+            await CheckPowerShellCommand("Add-AppxPackage");
+            await CheckPowerShellCommand("Get-AppxPackage");
+
+            #endregion
+
+            #region Check If Package Installed
+
+            bool isPackageInstalled = false;
+            string? packageFamilyName = null;
+
+            using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
+            { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+            {
+                await process.WaitForExitAsync();
+                string content = await process.StandardOutput.ReadToEndAsync();
+
+                if (!string.IsNullOrEmpty(content))
+                {
+                    packageFamilyName = content.Split('\n').FirstOrDefault(line => line.Contains("PackageFamilyName"))?.Split(":")[1]?.Trim();
+
+                    Console.WriteLine($"Found Package {packageFamilyName} Installed");
+                    isPackageInstalled = true;
+                }
+            };
+
+            #endregion
+
+            #region Install Dependency Packages
+
+            foreach (string path in dependencyPackagesPath)
+            {
+                using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{path}\" -ForceUpdateFromAnyVersion -ForceApplicationShutdown")
+                { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+                {
+                    await process.WaitForExitAsync();
+                    string errors = await process.StandardError.ReadToEndAsync();
+
+                    if (!string.IsNullOrEmpty(errors))
+                    {
+                        Console.Error.WriteLine($"Dependency Package [{path}] Installation Error:");
+                        Console.Error.WriteLine(errors);
+
+                        throw new InvalidOperationException($"counldn't install dependency package {path}");
+                    }
+                    else Console.WriteLine($"Dependency Package [{path}] Installed");
+                };
+            }
+
+            #endregion
+
+            #region Import Certification
+
+            byte[] certificateBytes = certificationPath != null
+                ? await File.ReadAllBytesAsync(certificationPath)
+                : Convert.FromBase64String(Certification);
+
+            using (var certificate = X509CertificateLoader.LoadCertificate(certificateBytes))
+            {
+                using X509Store store = new(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+
+                store.Open(OpenFlags.ReadWrite);
+                store.Remove(certificate);
+                store.Add(certificate);
+
+                Console.WriteLine("Certification Imported");
+            }
+
+            #endregion
+
+            #region Install/Update Package
+
+            string forceUpdateOption = isPackageInstalled ? " -ForceUpdateFromAnyVersion" : string.Empty;
+            using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\" -ForceApplicationShutdown" + forceUpdateOption)
             { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
             {
                 await process.WaitForExitAsync();
-                if (!string.IsNullOrEmpty(await process.StandardError.ReadToEndAsync()))
-                    throw new InvalidOperationException($"counldn't install dependency package {path}");
+                string errors = await process.StandardError.ReadToEndAsync();
+
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    Console.Error.WriteLine($"Application Package [{packagePath}] Installation Error:");
+                    Console.Error.WriteLine(errors);
+
+                    throw new InvalidOperationException($"counldn't install or update package {packagePath}");
+                }
+                else Console.WriteLine($"Application Package [{packagePath}] Installed/Updated");
             };
+
+            #endregion
+
+            #region Launch Application
+
+            try
+            {
+                using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
+                { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
+                {
+                    await process.WaitForExitAsync();
+                    string content = await process.StandardOutput.ReadToEndAsync();
+
+                    if (string.IsNullOrEmpty(content))
+                        throw new InvalidOperationException("counldn't get PackageFamilyName of installed package");
+
+                    packageFamilyName = content.Split('\n').FirstOrDefault(line => line.Contains("PackageFamilyName"))?.Split(":")[1]?.Trim();
+                };
+
+                if (launchAfterInstalled)
+                    Process.Start("explorer.exe", $"shell:AppsFolder\\{packageFamilyName}!App");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Failed to Launch Application");
+                Console.Error.WriteLine(ex);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            streamWriter?.Flush();
+            streamWriter?.Close();
+
+            throw;
         }
 
-        #endregion
-
-        #region Import Certification
-
-        byte[] certificateBytes = certificationPath != null
-            ? await File.ReadAllBytesAsync(certificationPath)
-            : Convert.FromBase64String(Certification);
-
-        using (var certificate = X509CertificateLoader.LoadCertificate(certificateBytes))
-        {
-            using X509Store store = new(StoreName.TrustedPeople, StoreLocation.LocalMachine);
-
-            store.Open(OpenFlags.ReadWrite);
-            store.Remove(certificate);
-            store.Add(certificate);
-        }
-
-        #endregion
-
-        #region Install/Update Package
-
-        string forceUpdateOption = isPackageInstalled ? " -ForceUpdateFromAnyVersion" : string.Empty;
-        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Add-AppxPackage -Path \"{packagePath}\" -ForceApplicationShutdown" + forceUpdateOption)
-        { RedirectStandardOutput = true, RedirectStandardError = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
-        {
-            await process.WaitForExitAsync();
-            if (!string.IsNullOrEmpty(await process.StandardError.ReadToEndAsync()))
-                throw new InvalidOperationException($"counldn't install or update package {packagePath}");
-        };
-
-        #endregion
-
-        #region Launch Application
-
-        using (var process = Process.Start(new ProcessStartInfo("powershell", $"Get-AppxPackage -Name {packageName}")
-        { RedirectStandardOutput = true }) ?? throw new InvalidOperationException("couldn't start powershell process"))
-        {
-            await process.WaitForExitAsync();
-            string content = await process.StandardOutput.ReadToEndAsync();
-
-            if (string.IsNullOrEmpty(content))
-                throw new InvalidOperationException("counldn't get PackageFamilyName of installed package");
-
-            packageFamilyName = content.Split('\n').FirstOrDefault(line => line.Contains("PackageFamilyName"))?.Split(":")[1]?.Trim();
-        };
-
-        if (launchAfterInstalled)
-            Process.Start("explorer.exe", $"shell:AppsFolder\\{packageFamilyName}!App");
-
-        #endregion
+        streamWriter?.Flush();
+        streamWriter?.Close();
     }
 }
