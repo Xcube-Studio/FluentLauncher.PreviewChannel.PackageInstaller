@@ -30,6 +30,7 @@ public class InstallScripts
     public static async Task InstallPackage(string packagePath, string[] dependencyPackagesPath,
         string? certificationPath = null, bool launchAfterInstalled = true, string? logFilePath = default)
     {
+        TextWriter defaultWriter = Console.Out;
         StreamWriter? streamWriter = null;
 
         if (!string.IsNullOrEmpty(logFilePath))
@@ -206,6 +207,9 @@ public class InstallScripts
             Console.Error.WriteLine(ex);
             streamWriter?.Flush();
             streamWriter?.Close();
+
+            Console.SetOut(defaultWriter);
+            Console.SetError(defaultWriter);
 
             throw;
         }
