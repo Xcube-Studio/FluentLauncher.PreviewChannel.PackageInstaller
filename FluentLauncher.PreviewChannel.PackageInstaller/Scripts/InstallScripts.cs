@@ -124,6 +124,12 @@ public class InstallScripts
 
                     if (!string.IsNullOrEmpty(errors))
                     {
+                        if (errors.Contains("0x80073D06")) // Package already installed as higher version
+                        {
+                            Console.WriteLine($"Dependency Package [{path}] Already Installed");
+                            continue;
+                        }
+
                         Console.Error.WriteLine($"Dependency Package [{path}] Installation Error:");
                         Console.Error.WriteLine(errors);
 
