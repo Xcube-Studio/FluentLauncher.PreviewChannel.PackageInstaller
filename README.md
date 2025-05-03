@@ -1,5 +1,8 @@
 # FluentLauncher.PreviewChannel.PackageInstaller
 
+> [!IMPORTANT] 
+> _**此工具已弃用，请转到 [FluentLauncher.Preview.Installer](https://github.com/Xcube-Studio/FluentLauncher.Preview.Installer)**_  
+
 ## ❓这是什么
 
 这是 Fluent Launcher 预览通道更新包安装器，从 Release 中下载 `PackageInstaller.exe` 将其与 `updatePackage.zip` 放在同一目录下即可更新  
